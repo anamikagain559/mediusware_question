@@ -8,82 +8,100 @@ use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\View\Factory|\Illuminate\Http\Response|\Illuminate\View\View
-     */
+  
     public function index()
-    {
-        return view('products.index');
+    {    
+        $products = Product::with('variantPrices.variantOne', 'variantPrices.variantTwo', 'variantPrices.variantThree')->paginate(5);
+        $variants = Variant::with('productVariants')->get();
+     // dd($variants);
+        return view('products.index',compact('products','variants'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Contracts\View\Factory|\Illuminate\Http\Response|\Illuminate\View\View
-     */
+ 
     public function create()
     {
         $variants = Variant::all();
         return view('products.create', compact('variants'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
+
     public function store(Request $request)
     {
 
     }
 
 
-    /**
-     * Display the specified resource.
-     *
-     * @param \App\Models\Product $product
-     * @return \Illuminate\Http\Response
-     */
+
     public function show($product)
     {
 
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param \App\Models\Product $product
-     * @return \Illuminate\Http\Response
-     */
+
     public function edit(Product $product)
     {
         $variants = Variant::all();
         return view('products.edit', compact('variants'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param \Illuminate\Http\Request $request
-     * @param \App\Models\Product $product
-     * @return \Illuminate\Http\Response
-     */
+
     public function update(Request $request, Product $product)
     {
         //
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param \App\Models\Product $product
-     * @return \Illuminate\Http\Response
-     */
+ 
     public function destroy(Product $product)
     {
         //
     }
+    public function search(Request $request)
+{
+    //dd($request);
+    $selectedVariantIds = $request->input('variant_id');
+    $minPrice = $request->input('price_from');
+    $maxPrice = $request->input('price_to');
+    $name = $request->input('title');
+    $date = $request->input('date');
+
+
+    $query = Product::query();
+
+    if ($selectedVariantIds) {
+        $query->whereHas('variantPrices', function ($subQuery) use ($selectedVariantIds) {
+            $subQuery->whereIn('product_variant_one', $selectedVariantIds)
+                ->orWhereIn('product_variant_two', $selectedVariantIds)
+                ->orWhereIn('product_variant_three', $selectedVariantIds);
+        });
+    }
+
+    if ($minPrice !== null && $maxPrice !== null) {
+        $query->whereHas('variantPrices', function ($subQuery) use ($minPrice, $maxPrice) {
+            $subQuery->whereBetween('price', [$minPrice, $maxPrice]);
+        });
+    }
+
+    if ($name !== null) {
+        $query->where('title', 'like', '%'.$name.'%');
+    }
+
+    if ($date !== null ) {
+        $query->where('created_at', [$date]);
+    }
+
+    $products = $query->with('variantPrices.variantOne', 'variantPrices.variantTwo', 'variantPrices.variantThree')->get();
+    // $selectedVariantIds = $request->input('variant_id');
+    // $query = Product::query();
+    // if ($selectedVariantIds) {
+    //   $query->whereHas('variantPrices', function ($subQuery) use ($selectedVariantIds) {
+    //     $subQuery->whereIn('product_variant_one', $selectedVariantIds)
+    //       ->orWhereIn('product_variant_two', $selectedVariantIds)
+    //       ->orWhereIn('product_variant_three', $selectedVariantIds);
+    //   });
+    // }
+    // $products = $query->with('variantPrices.variantOne', 'variantPrices.variantTwo', 'variantPrices.variantThree')->get();
+
+    $variants = Variant::with('productVariants')->get();
+    return view('products.index', compact('products','variants','selectedVariantIds'));
+}
 }

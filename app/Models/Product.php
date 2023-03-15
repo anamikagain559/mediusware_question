@@ -9,5 +9,18 @@ class Product extends Model
     protected $fillable = [
         'title', 'sku', 'description'
     ];
-
+    public function variants()
+    {
+        return $this->hasMany(ProductVariant::class);
+    }
+    public function variantPrices()
+    {
+        return $this->hasMany(ProductVariantPrice::class);
+    }
+    // public function variants()
+    // {
+    //     return $this->belongsToMany(ProductVariant::class)
+    //         ->using(ProductVariantPrice::class)
+    //         ->withPivot(['price', 'stock']);
+    // }
 }
